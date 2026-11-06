@@ -1,0 +1,5 @@
+# Case Companion — Python Clocked test
+# NOTE: the Clocked package is `clocked-sdk` on PyPI (`clocked` is an
+# unrelated package, so never `pip install clocked`).
+clocked-sdk==0.7.0
+python-dotenv

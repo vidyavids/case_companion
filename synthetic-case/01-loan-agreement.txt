@@ -1,0 +1,38 @@
+SYNTHETIC DOCUMENT — FOR DEMO ONLY. All names, amounts, dates, and case numbers are fictional.
+
+================================================================
+SMALL BUSINESS LOAN AGREEMENT
+Meridian Community Bank ("Lender") and Ridgeway Hardware LLC ("Borrower")
+================================================================
+
+Date of Agreement: March 12, 2024
+Loan Number: MB-SB-2024-03117
+
+1. LOAN AMOUNT. Lender agrees to lend Borrower the principal sum of
+   $185,000.00 (One Hundred Eighty-Five Thousand Dollars).
+
+2. INTEREST RATE. The loan bears interest at a fixed annual rate of
+   8.25% per annum.
+
+3. MONTHLY PAYMENT. Borrower shall pay $3,762.00 per month, due on the
+   first day of each calendar month, beginning May 1, 2024.
+
+4. PURPOSE. The loan proceeds shall be used for business purposes only,
+   including inventory purchases and store improvements at Borrower's
+   retail location.
+
+5. COLLATERAL. As security for this loan, Borrower grants Lender a
+   security interest in all business assets of Ridgeway Hardware LLC,
+   including inventory, equipment, fixtures, and accounts receivable.
+
+6. DEFAULT. Failure to make any monthly payment within fifteen (15) days
+   of its due date constitutes an event of default. Upon default, Lender
+   may declare the entire unpaid balance immediately due and payable.
+
+Signed:
+
+__________________________            __________________________
+Meridian Community Bank               Ridgeway Hardware LLC
+Alicia M. Tran, Loan Officer          Daniel R. Whitfield, Member
+
+Date: March 12, 2024

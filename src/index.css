@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+@theme {
+  --font-brief: Georgia, "Times New Roman", serif;
+  --font-doc: ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+
+.brief-sheet {
+  font-family: var(--font-brief);
+}
+
+.doc-text {
+  white-space: pre-wrap;
+  font-family: var(--font-doc);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
