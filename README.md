@@ -2,6 +2,10 @@
 
 A Clocked Build Challenge entry (entries close Tue Nov 10, 2026, 11:59 PM ET).
 
+Imagine you are a bank officer with a court hearing tomorrow and a thick case
+file. Case Companion reads the whole file and writes your one-page cheat
+sheet — in seconds.
+
 A bank recovery officer opens a thick case file the night before a hearing.
 Case Companion turns it into a **one-page hearing brief in seconds**. Every
 date, amount, and order carries its source document. Missing documents are

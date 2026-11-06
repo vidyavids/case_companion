@@ -7,18 +7,19 @@ type StepState = "idle" | "running" | "done" | "error";
 interface StepInfo {
   key: string;
   label: string;
+  plain: string;
   endpoint: string;
   blurb: string;
 }
 
 const STEPS: StepInfo[] = [
-  { key: "protect", label: "Protect", endpoint: "POST /clocked/pii", blurb: "Mask personal data in each document before anything else reads it." },
-  { key: "extract", label: "Extract", endpoint: "POST /clocked/extract", blurb: "Copy 15 key facts verbatim, each with its source position." },
-  { key: "decide", label: "Decide", endpoint: "POST /clocked/decide", blurb: "Hearing type, continuance outlook, settlement outlook, prep priority." },
-  { key: "fill", label: "Fill", endpoint: "POST /clocked/fill", blurb: "Assemble the one-page brief record: facts, decisions, drafted lines." },
-  { key: "verify", label: "Verify", endpoint: "POST /clocked/grounding", blurb: "Check every brief line against the file; unsupported lines go red." },
-  { key: "compare", label: "Compare", endpoint: "POST /clocked/compare", blurb: "Complaint vs prior court order: duplicates, overlap, conflicts." },
-  { key: "rerank", label: "Rerank", endpoint: "POST /clocked/rerank", blurb: "Rank the passages and bench questions that matter most." },
+  { key: "protect", label: "Protect", plain: "hide private details first", endpoint: "POST /clocked/pii", blurb: "Mask personal data in each document before anything else reads it." },
+  { key: "extract", label: "Extract", plain: "pull out the key facts", endpoint: "POST /clocked/extract", blurb: "Copy 15 key facts verbatim, each with its source position." },
+  { key: "decide", label: "Decide", plain: "size up the hearing", endpoint: "POST /clocked/decide", blurb: "Hearing type, continuance outlook, settlement outlook, prep priority." },
+  { key: "fill", label: "Fill", plain: "write the one-page brief", endpoint: "POST /clocked/fill", blurb: "Assemble the one-page brief record: facts, decisions, drafted lines." },
+  { key: "verify", label: "Verify", plain: "fact-check every line", endpoint: "POST /clocked/grounding", blurb: "Check every brief line against the file; unsupported lines go red." },
+  { key: "compare", label: "Compare", plain: "spot contradictions", endpoint: "POST /clocked/compare", blurb: "Complaint vs prior court order: duplicates, overlap, conflicts." },
+  { key: "rerank", label: "Rerank", plain: "rank what matters most", endpoint: "POST /clocked/rerank", blurb: "Rank the passages and bench questions that matter most." },
 ];
 
 const EXTRACT_LABELS: [string, string][] = [
@@ -294,6 +295,10 @@ export default function App() {
         <div className="mx-auto max-w-6xl px-4 py-5">
           <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">Clocked Build Challenge entry</p>
           <h1 className="mt-1 text-2xl font-bold sm:text-3xl">Case Companion</h1>
+          <p className="mt-1 max-w-3xl text-sm text-slate-200">
+            Imagine you are a bank officer with a court hearing tomorrow and a thick case file. This app reads the
+            whole file and writes your one-page cheat sheet — in seconds.
+          </p>
           <p className="mt-1 text-sm text-slate-300">
             {CASE_META.caption} · {CASE_META.court} · No. {CASE_META.caseNumber}
           </p>
@@ -355,6 +360,7 @@ export default function App() {
               return (
                 <li
                   key={s.key}
+                  title={s.plain}
                   className={`rounded border px-2 py-1.5 text-center text-xs font-semibold ${
                     st === "done"
                       ? "border-emerald-300 bg-emerald-50 text-emerald-800"
@@ -599,6 +605,33 @@ export default function App() {
                       </ul>
                     )}
                   </div>
+                  <details className="rounded border border-stone-200 bg-stone-50 px-3 py-2 text-sm">
+                    <summary className="cursor-pointer font-bold text-slate-700">Terms in plain English</summary>
+                    <dl className="mt-1 space-y-1">
+                      <div>
+                        <dt className="inline font-semibold">Status conference — </dt>
+                        <dd className="inline text-slate-600">
+                          a short court check-in where the judge asks how the case is going. No trial, no verdict.
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="inline font-semibold">Continuance — </dt>
+                        <dd className="inline text-slate-600">the judge moves a hearing to a later date.</dd>
+                      </div>
+                      <div>
+                        <dt className="inline font-semibold">Cure (a default) — </dt>
+                        <dd className="inline text-slate-600">
+                          pay what is owed by the deadline to fix a missed-payment default.
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="inline font-semibold">Guarantor — </dt>
+                        <dd className="inline text-slate-600">
+                          a person who personally promises to pay the loan if the borrower does not.
+                        </dd>
+                      </div>
+                    </dl>
+                  </details>
                 </div>
               )}
             </div>
@@ -675,7 +708,9 @@ export default function App() {
               return (
                 <li key={s.key} className="px-4 py-2.5 text-sm">
                   <div className="flex flex-wrap items-baseline gap-x-3">
-                    <span className="font-bold">{s.label}</span>
+                    <span className="font-bold">
+                      {s.label} <span className="font-medium text-slate-500">— {s.plain}</span>
+                    </span>
                     <code className="font-mono text-xs text-slate-500">{s.endpoint}</code>
                     {r?.ok && (
                       <span className="ml-auto text-xs text-slate-500">
