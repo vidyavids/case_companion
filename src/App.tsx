@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { answerOf, fieldValue, isRefusal, keyStatus, runStep, splitChrono, splitLines, str, toPassages, type StepResult } from "./api";
+import { answerOf, fieldValue, isRefusal, keyStatus, runStep, splitChrono, splitLines, str, stripLeadingNumber, toPassages, type StepResult } from "./api";
 import { CASE_META, DEMO_DOCS } from "./caseData";
 
 type StepState = "idle" | "running" | "done" | "error";
@@ -270,10 +270,10 @@ export default function App() {
       | { id?: string; relevance_score?: number }[]
       | undefined;
     const questions = splitLines(fieldValue(fillData, "bench_questions"));
-    if (!res) return questions.map((q) => ({ text: q, score: null as number | null }));
+    if (!res) return questions.map((q) => ({ text: stripLeadingNumber(q), score: null as number | null }));
     const byId = new Map(questions.map((q, i) => [`q${i + 1}`, q]));
     return res.map((r) => ({
-      text: (r.id && byId.get(r.id)) || "",
+      text: stripLeadingNumber((r.id && byId.get(r.id)) || ""),
       score: typeof r.relevance_score === "number" ? r.relevance_score : null,
     }));
   }, [results.rerankQuestions, fillData]);
@@ -579,7 +579,7 @@ export default function App() {
                         <li key={i}>
                           {q.text}
                           {q.score !== null && (
-                            <span className="text-xs text-slate-500"> ({Math.round(q.score * 100)}%)</span>
+                            <span className="text-xs text-slate-500"> (relevance score {q.score.toFixed(3)})</span>
                           )}
                         </li>
                       ))}
@@ -646,8 +646,10 @@ export default function App() {
                   {rankedPassages.map((r, i) => (
                     <li key={i} className="rounded border border-stone-200 bg-stone-50 p-2.5">
                       <p className="text-xs font-semibold text-slate-600">
-                        #{i + 1} · {r.passage?.title ?? r.id} · action: {str(r.action) || "—"}
-                        {typeof r.relevance_score === "number" && ` · ${Math.round(r.relevance_score * 100)}%`}
+                        Rank #{i + 1} of {rankedPassages.length} · {r.passage?.title ?? r.id} · action:{" "}
+                        {str(r.action) || "—"}
+                        {typeof r.relevance_score === "number" &&
+                          ` · relevance score ${r.relevance_score.toFixed(3)}`}
                       </p>
                       <p className="mt-1 line-clamp-3">{r.passage?.text}</p>
                     </li>

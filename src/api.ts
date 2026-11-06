@@ -69,6 +69,11 @@ export function splitChrono(text: string): string[] {
     .filter((l) => l.length > 0);
 }
 
+/** Strip a leading "1." / "1)" list number so ranked items carry one number only. */
+export function stripLeadingNumber(text: string): string {
+  return text.replace(/^\d+[.)]\s+/, "");
+}
+
 /** Detect a model refusal so the UI can say so instead of printing it. */
 export function isRefusal(text: string): boolean {
   return /^\s*I (cannot|can't|am unable|am not able|must decline)/i.test(text);
