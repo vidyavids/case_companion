@@ -315,8 +315,15 @@ export default function App() {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-6">
-        {/* Controls */}
+        {/* Case summary card */}
         <section className="rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
+          <h2 className="text-base font-bold">{CASE_META.caption}</h2>
+          <p className="text-sm text-slate-600">$185,000 loan · Case No. {CASE_META.caseNumber}</p>
+          <p className="text-sm font-medium">Next hearing: Status Conference, Thu Nov 12, 2026, 9:30 AM, Courtroom 4B</p>
+        </section>
+
+        {/* Controls */}
+        <section className="mt-6 rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <button
               onClick={loadDemoCase}
@@ -365,13 +372,13 @@ export default function App() {
                     st === "done"
                       ? "border-emerald-300 bg-emerald-50 text-emerald-800"
                       : st === "running"
-                        ? "border-amber-400 bg-amber-50 text-amber-800"
+                        ? "animate-pulse border-amber-400 bg-amber-50 text-amber-800"
                         : st === "error"
                           ? "border-red-300 bg-red-50 text-red-800"
                           : "border-stone-200 bg-stone-50 text-slate-500"
                   }`}
                 >
-                  {st === "running" ? "… " : st === "done" ? "✓ " : ""}
+                  {st === "running" ? "… " : st === "done" ? "✓ " : st === "error" ? "✕ " : "○ "}
                   {s.label}
                 </li>
               );
