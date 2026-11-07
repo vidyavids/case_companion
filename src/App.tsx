@@ -190,6 +190,11 @@ export default function App() {
       mark("fill", "running");
       store.fill = await runStep("fill", { documents: maskedPayload });
       if (!store.fill.ok) throw new Error(`Fill: ${store.fill.error}`);
+      // One retry if bench questions came back as refusal text.
+      if (isRefusal(fieldValue(store.fill.data, "bench_questions"))) {
+        const retry = await runStep("fill", { documents: maskedPayload });
+        if (retry.ok) store.fill = retry;
+      }
       setResults({ ...store });
       mark("fill", "done");
 
@@ -302,6 +307,8 @@ export default function App() {
       score: typeof r.relevance_score === "number" ? r.relevance_score : null,
     }));
   }, [results.rerankQuestions, fillData, mask]);
+
+  const benchRefused = isRefusal(fieldValue(fillData, "bench_questions"));
 
   const piiCounts = useMemo(() => {
     const list = results.protect?.results ?? [];
@@ -637,16 +644,25 @@ export default function App() {
                     <h3 className="mb-1 text-sm font-bold uppercase tracking-wide text-slate-700">
                       Likely questions from the bench
                     </h3>
-                    <ol className="list-decimal space-y-0.5 pl-5">
-                      {rankedQuestions.map((q, i) => (
-                        <li key={i}>
-                          {q.text}
-                          {q.score !== null && (
-                            <span className="text-xs text-slate-500"> (relevance score {q.score.toFixed(3)})</span>
-                          )}
-                        </li>
-                      ))}
-                    </ol>
+                    {benchRefused ? (
+                      <p className="text-sm">
+                        <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-bold text-amber-800">
+                          MISSING
+                        </span>{" "}
+                        <span className="text-slate-600">— Clocked declined to draft this section.</span>
+                      </p>
+                    ) : (
+                      <ol className="list-decimal space-y-0.5 pl-5">
+                        {rankedQuestions.map((q, i) => (
+                          <li key={i}>
+                            {q.text}
+                            {q.score !== null && (
+                              <span className="text-xs text-slate-500"> (relevance score {q.score.toFixed(3)})</span>
+                            )}
+                          </li>
+                        ))}
+                      </ol>
+                    )}
                   </div>
                   <div>
                     <h3 className="mb-1 text-sm font-bold uppercase tracking-wide text-slate-700">Bank talking points</h3>

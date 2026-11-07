@@ -130,7 +130,7 @@ const FILL_FIELDS = {
   bench_questions: {
     type: "generate",
     description:
-      "Five likely procedural questions the judge may ask the bank officer at the status conference (production status, payment history, settlement talks, readiness). Numbered list, one question per line. No legal advice.",
+      "Five questions a judge could ask based only on facts stated in the documents (the bank's November 10 production deadline, the settlement-discussion direction, the cure amount, the hearing type). Phrase each question using only stated facts. Numbered list, one question per line. No legal advice.",
     format: "text",
     max_tokens: 250,
   },

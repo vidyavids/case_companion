@@ -76,7 +76,7 @@ export function stripLeadingNumber(text: string): string {
 
 /** Detect a model refusal so the UI can say so instead of printing it. */
 export function isRefusal(text: string): boolean {
-  return /^\s*I (cannot|can't|am unable|am not able|must decline)/i.test(text);
+  return /^\s*I (am sorry|'m sorry|cannot|can't|can not|am unable|am not able|must decline)/i.test(text);
 }
 
 /** Split a document into paragraph passages for rerank. */
