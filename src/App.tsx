@@ -315,8 +315,33 @@ export default function App() {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-6">
-        {/* Case summary card */}
+        {/* Explainer box */}
         <section className="rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
+          <p className="text-sm">
+            Case Companion is a hearing-prep tool for a bank recovery officer. The officer has a thick case file and
+            a hearing tomorrow. Instead of reading 4 documents and making notes by hand, they load the file into
+            Case Companion and get a one-page hearing brief in seconds — chronology, where the case stands,
+            documents to carry, and likely bench questions. Every fact in the brief carries its source document,
+            and nothing is invented. It&apos;s procedural prep only, not legal advice.
+          </p>
+          <div className="mt-2 space-y-0.5 text-sm">
+            <p>
+              <span className="font-bold">Problem:</span> thick file, little time — missing a fact or inventing one
+              can hurt in court.
+            </p>
+            <p>
+              <span className="font-bold">Solution:</span> Clocked does the prep work, step by step — Protect,
+              Extract, Decide, Fill, Verify, Compare, Rerank.
+            </p>
+            <p>
+              <span className="font-bold">Proof:</span> 15 facts extracted, 12/12 brief lines verified with zero
+              unverified, 0 conflicts between complaint and court order.
+            </p>
+          </div>
+        </section>
+
+        {/* Case summary card */}
+        <section className="mt-6 rounded-lg border border-stone-300 bg-white p-4 shadow-sm">
           <h2 className="text-base font-bold">{CASE_META.caption}</h2>
           <p className="text-sm text-slate-600">$185,000 loan · Case No. {CASE_META.caseNumber}</p>
           <p className="text-sm font-medium">Next hearing: Status Conference, Thu Nov 12, 2026, 9:30 AM, Courtroom 4B</p>
