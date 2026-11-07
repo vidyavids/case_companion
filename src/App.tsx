@@ -257,6 +257,12 @@ export default function App() {
     return pairs?.[0];
   }, [results.compare]);
 
+  // Plain-English terms only ever come from Fill. No terms → section stays hidden.
+  const fillTerms = useMemo(
+    () => splitLines(fieldValue(fillData, "plain_english_terms")),
+    [fillData],
+  );
+
   const rankedPassages = useMemo(() => {
     const res = results.rerank?.data?.results as
       | { id?: string; action?: string; relevance_score?: number; document_score?: number }[]
@@ -637,33 +643,16 @@ export default function App() {
                       </ul>
                     )}
                   </div>
-                  <details className="rounded border border-stone-200 bg-stone-50 px-3 py-2 text-sm">
-                    <summary className="cursor-pointer font-bold text-slate-700">Terms in plain English</summary>
-                    <dl className="mt-1 space-y-1">
-                      <div>
-                        <dt className="inline font-semibold">Status conference — </dt>
-                        <dd className="inline text-slate-600">
-                          a short court check-in where the judge asks how the case is going. No trial, no verdict.
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="inline font-semibold">Continuance — </dt>
-                        <dd className="inline text-slate-600">the judge moves a hearing to a later date.</dd>
-                      </div>
-                      <div>
-                        <dt className="inline font-semibold">Cure (a default) — </dt>
-                        <dd className="inline text-slate-600">
-                          pay what is owed by the deadline to fix a missed-payment default.
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="inline font-semibold">Guarantor — </dt>
-                        <dd className="inline text-slate-600">
-                          a person who personally promises to pay the loan if the borrower does not.
-                        </dd>
-                      </div>
-                    </dl>
-                  </details>
+                  {fillTerms.length > 0 && (
+                    <details className="rounded border border-stone-200 bg-stone-50 px-3 py-2 text-sm">
+                      <summary className="cursor-pointer font-bold text-slate-700">Terms in plain English</summary>
+                      <ul className="mt-1 list-disc space-y-0.5 pl-5 text-slate-600">
+                        {fillTerms.map((t, i) => (
+                          <li key={i}>{t}</li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
                 </div>
               )}
             </div>
