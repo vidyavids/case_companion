@@ -714,6 +714,7 @@ export default function App() {
               <div className="mt-6 overflow-hidden rounded-lg border border-stone-300 bg-white shadow-sm">
                 <div className="border-b border-stone-200 px-4 py-3">
                   <h2 className="text-base font-bold">Rerank — passages to read first</h2>
+                  <p className="text-xs text-slate-600">Ranked by relevance — rank matters, not the raw score.</p>
                 </div>
                 <ol className="space-y-2 px-4 py-3 text-sm">
                   {rankedPassages.map((r, i) => (
@@ -721,8 +722,6 @@ export default function App() {
                       <p className="text-xs font-semibold text-slate-600">
                         Rank #{i + 1} of {rankedPassages.length} · {r.passage?.title ?? r.id} · action:{" "}
                         {str(r.action) || "—"}
-                        {typeof r.relevance_score === "number" &&
-                          ` · relevance score ${r.relevance_score.toFixed(3)}`}
                       </p>
                       <p className="mt-1 line-clamp-3">{mask(r.passage?.text ?? "")}</p>
                     </li>
