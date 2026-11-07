@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { answerOf, fieldValue, isRefusal, keyStatus, runStep, splitChrono, splitLines, str, stripLeadingNumber, toPassages, type StepResult } from "./api";
-import { CASE_META, DEMO_DOCS } from "./caseData";
+import { CASE_META, DEMO_DOCS, type CaseDoc } from "./caseData";
+import { collectPersonNames, toDisplayText } from "./masking";
 
 type StepState = "idle" | "running" | "done" | "error";
 
@@ -114,6 +115,7 @@ export default function App() {
   const [fatal, setFatal] = useState<string | null>(null);
   const [activeDoc, setActiveDoc] = useState(0);
   const [running, setRunning] = useState(false);
+  const [maskedDocs, setMaskedDocs] = useState<CaseDoc[] | null>(null);
 
   useEffect(() => {
     keyStatus()
@@ -131,6 +133,11 @@ export default function App() {
     });
   }, [results.protect]);
 
+  // Display text: leaked names masked, Protect mask runs shown as [name masked].
+  // Verify/Rerank matching below keeps using the step-output text as returned.
+  const personNames = useMemo(() => collectPersonNames(results.protect?.results), [results.protect]);
+  const mask = useCallback((s: string) => toDisplayText(s, personNames), [personNames]);
+
   const verifyMap = useMemo(() => verdictsFor(results.verify?.data), [results.verify]);
   const verdictFor = useCallback(
     (line: string) => verifyMap.get(line.toLowerCase().replace(/\s+/g, " ").trim()),
@@ -141,36 +148,47 @@ export default function App() {
     setRunning(true);
     setFatal(null);
     setResults({});
+    setMaskedDocs(null);
     setStates(Object.fromEntries(STEPS.map((s) => [s.key, "idle" as StepState])));
     const store: Record<string, StepResult> = {};
     const mark = (key: string, st: StepState) => setStates((p) => ({ ...p, [key]: st }));
 
     const docsPayload = DEMO_DOCS.map((d) => ({ id: d.id, title: d.title, text: d.text }));
     try {
-      // 1. Protect — mask PII first
+      // 1. Protect — mask PII first. This is the ONLY step that sees originals.
       mark("protect", "running");
       store.protect = await runStep("protect", { documents: docsPayload });
       if (!store.protect.ok) throw new Error(`Protect: ${store.protect.error}`);
       setResults({ ...store });
       mark("protect", "done");
 
+      // Steps 2-7 run on Protect's masked text. Fail closed: if any document
+      // lacks masked text, stop rather than send originals downstream.
+      const anon =
+        store.protect.results?.map((r) => str((r.data as Record<string, unknown>)?.anonymized_text)) ?? [];
+      if (anon.length !== docsPayload.length || anon.some((t) => !t)) {
+        throw new Error("Protect did not mask every document — stopping before originals go downstream.");
+      }
+      const maskedPayload = docsPayload.map((d, i) => ({ ...d, text: anon[i] as string }));
+      setMaskedDocs(DEMO_DOCS.map((d, i) => ({ ...d, text: anon[i] as string })));
+
       // 2. Extract
       mark("extract", "running");
-      store.extract = await runStep("extract", { documents: docsPayload });
+      store.extract = await runStep("extract", { documents: maskedPayload });
       if (!store.extract.ok) throw new Error(`Extract: ${store.extract.error}`);
       setResults({ ...store });
       mark("extract", "done");
 
       // 3. Decide
       mark("decide", "running");
-      store.decide = await runStep("decide", { documents: docsPayload });
+      store.decide = await runStep("decide", { documents: maskedPayload });
       if (!store.decide.ok) throw new Error(`Decide: ${store.decide.error}`);
       setResults({ ...store });
       mark("decide", "done");
 
       // 4. Fill
       mark("fill", "running");
-      store.fill = await runStep("fill", { documents: docsPayload });
+      store.fill = await runStep("fill", { documents: maskedPayload });
       if (!store.fill.ok) throw new Error(`Fill: ${store.fill.error}`);
       setResults({ ...store });
       mark("fill", "done");
@@ -185,7 +203,7 @@ export default function App() {
       ];
       mark("verify", "running");
       store.verify = await runStep("verify", {
-        documents: docsPayload,
+        documents: maskedPayload,
         answer: briefLines.join("\n"),
         claims: briefLines,
       });
@@ -195,14 +213,14 @@ export default function App() {
 
       // 6. Compare
       mark("compare", "running");
-      store.compare = await runStep("compare", { documents: docsPayload });
+      store.compare = await runStep("compare", { documents: maskedPayload });
       if (!store.compare.ok) throw new Error(`Compare: ${store.compare.error}`);
       setResults({ ...store });
       mark("compare", "done");
 
       // 7. Rerank — passages, then bench questions
       mark("rerank", "running");
-      const passages = toPassages(DEMO_DOCS);
+      const passages = toPassages(DEMO_DOCS.map((d, i) => ({ ...d, text: anon[i] as string })));
       const rerankPassages = await runStep("rerank", {
         query: "What must the bank officer bring, produce, and be ready to answer at the November 12 status conference?",
         passages,
@@ -268,22 +286,22 @@ export default function App() {
       | { id?: string; action?: string; relevance_score?: number; document_score?: number }[]
       | undefined;
     if (!res) return [];
-    const byId = new Map(toPassages(DEMO_DOCS).map((p) => [p.id, p]));
+    const byId = new Map(toPassages(maskedDocs ?? []).map((p) => [p.id, p]));
     return res.map((r) => ({ ...r, passage: r.id ? byId.get(r.id) : undefined }));
-  }, [results.rerank]);
+  }, [results.rerank, maskedDocs]);
 
   const rankedQuestions = useMemo(() => {
     const res = results.rerankQuestions?.data?.results as
       | { id?: string; relevance_score?: number }[]
       | undefined;
     const questions = splitLines(fieldValue(fillData, "bench_questions"));
-    if (!res) return questions.map((q) => ({ text: stripLeadingNumber(q), score: null as number | null }));
+    if (!res) return questions.map((q) => ({ text: mask(stripLeadingNumber(q)), score: null as number | null }));
     const byId = new Map(questions.map((q, i) => [`q${i + 1}`, q]));
     return res.map((r) => ({
-      text: stripLeadingNumber((r.id && byId.get(r.id)) || ""),
+      text: mask(stripLeadingNumber((r.id && byId.get(r.id)) || "")),
       score: typeof r.relevance_score === "number" ? r.relevance_score : null,
     }));
-  }, [results.rerankQuestions, fillData]);
+  }, [results.rerankQuestions, fillData, mask]);
 
   const piiCounts = useMemo(() => {
     const list = results.protect?.results ?? [];
@@ -454,7 +472,7 @@ export default function App() {
                   )}
                 </div>
                 <div className="doc-text max-h-96 overflow-auto rounded border border-stone-200 bg-stone-50 p-3">
-                  {(masked ?? DEMO_DOCS.map((d) => d.text))[activeDoc]}
+                  {mask((masked ?? DEMO_DOCS.map((d) => d.text))[activeDoc])}
                 </div>
               </div>
             </div>
@@ -479,7 +497,7 @@ export default function App() {
                             <span className="font-semibold text-amber-700">missing — not stated in file</span>
                           ) : (
                             <>
-                              <span className="font-semibold">{value}</span>{" "}
+                              <span className="font-semibold">{mask(value)}</span>{" "}
                               <span className="text-xs text-slate-500">
                                 ({sourceOf(entry?.start, entry?.end, ranges)})
                               </span>
@@ -537,11 +555,12 @@ export default function App() {
               <div className="border-b-2 border-slate-900 px-5 py-4">
                 <h2 className="text-lg font-bold">Hearing brief — one page</h2>
                 <p className="text-sm">
-                  {done ? fieldValue(fillData, "caption") || CASE_META.caption : CASE_META.caption}
+                  {mask(done ? fieldValue(fillData, "caption") || CASE_META.caption : CASE_META.caption)}
                 </p>
                 <p className="text-sm text-slate-600">
-                  {CASE_META.court} · No. {done ? fieldValue(fillData, "case_number") || CASE_META.caseNumber : CASE_META.caseNumber} ·{" "}
-                  {done ? fieldValue(fillData, "next_hearing") || CASE_META.hearing : CASE_META.hearing}
+                  {CASE_META.court} · No.{" "}
+                  {mask(done ? fieldValue(fillData, "case_number") || CASE_META.caseNumber : CASE_META.caseNumber)} ·{" "}
+                  {mask(done ? fieldValue(fillData, "next_hearing") || CASE_META.hearing : CASE_META.hearing)}
                 </p>
               </div>
               {!done ? (
@@ -554,7 +573,7 @@ export default function App() {
                     <h3 className="mb-1 text-sm font-bold uppercase tracking-wide text-slate-700">Chronology</h3>
                     <ul>
                       {splitChrono(fieldValue(fillData, "chronology")).map((l, i) => (
-                        <BriefLine key={i} text={l} verdict={verdictFor(l)} />
+                        <BriefLine key={i} text={mask(l)} verdict={verdictFor(l)} />
                       ))}
                     </ul>
                   </div>
@@ -562,7 +581,7 @@ export default function App() {
                     <h3 className="mb-1 text-sm font-bold uppercase tracking-wide text-slate-700">Last-hearing summary</h3>
                     <ul>
                       {splitLines(fieldValue(fillData, "last_hearing_summary")).map((l, i) => (
-                        <BriefLine key={i} text={l} verdict={verdictFor(l)} />
+                        <BriefLine key={i} text={mask(l)} verdict={verdictFor(l)} />
                       ))}
                     </ul>
                   </div>
@@ -570,12 +589,12 @@ export default function App() {
                     <h3 className="mb-1 text-sm font-bold uppercase tracking-wide text-slate-700">Where it stands</h3>
                     <ul>
                       {splitLines(fieldValue(fillData, "where_it_stands")).map((l, i) => (
-                        <BriefLine key={i} text={l} verdict={verdictFor(l)} />
+                        <BriefLine key={i} text={mask(l)} verdict={verdictFor(l)} />
                       ))}
                     </ul>
                     <p className="mt-1 text-sm">
                       <span className="font-semibold">Bank deadline: </span>
-                      {fieldValue(fillData, "bank_deadline") || "missing — not stated in file"}
+                      {mask(fieldValue(fillData, "bank_deadline") || "missing — not stated in file")}
                     </p>
                   </div>
                   <div>
@@ -638,7 +657,7 @@ export default function App() {
                     ) : (
                       <ul>
                         {splitLines(fieldValue(fillData, "talking_points")).map((l, i) => (
-                          <BriefLine key={i} text={l} verdict={verdictFor(l)} />
+                          <BriefLine key={i} text={mask(l)} verdict={verdictFor(l)} />
                         ))}
                       </ul>
                     )}
@@ -682,7 +701,7 @@ export default function App() {
                     <details className="mt-2">
                       <summary className="cursor-pointer font-semibold text-amber-800">Conflict passages</summary>
                       <pre className="doc-text mt-1 max-h-48 overflow-auto rounded bg-stone-50 p-2">
-                        {JSON.stringify(comparePair.conflicts, null, 2)}
+                        {mask(JSON.stringify(comparePair.conflicts, null, 2))}
                       </pre>
                     </details>
                   )}
@@ -705,7 +724,7 @@ export default function App() {
                         {typeof r.relevance_score === "number" &&
                           ` · relevance score ${r.relevance_score.toFixed(3)}`}
                       </p>
-                      <p className="mt-1 line-clamp-3">{r.passage?.text}</p>
+                      <p className="mt-1 line-clamp-3">{mask(r.passage?.text ?? "")}</p>
                     </li>
                   ))}
                 </ol>
@@ -751,10 +770,10 @@ export default function App() {
                   {r?.ok && (
                     <details className="mt-1">
                       <summary className="cursor-pointer text-xs font-semibold text-slate-600">
-                        Raw {s.label} response
+                        Raw {s.label} response (personal names masked)
                       </summary>
                       <pre className="doc-text mt-1 max-h-64 overflow-auto rounded bg-stone-50 p-2">
-                        {JSON.stringify(r.data ?? r.results?.map((x) => x.data), null, 2)}
+                        {mask(JSON.stringify(r.data ?? r.results?.map((x) => x.data), null, 2))}
                       </pre>
                     </details>
                   )}
